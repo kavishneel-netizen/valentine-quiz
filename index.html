@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valentine Quiz 💖</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Roboto:wght@400;500&display=swap');
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #ffe6f0, #ffccf2);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+#quiz-container {
+    background: #ffffffdd;
+    padding: 40px 30px;
+    margin-top: 50px;
+    border-radius: 22px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.18);
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+    transition: opacity 0.5s ease;
+}
+
+h1 {
+    font-family: 'Pacifico', cursive;
+    font-size: 3rem;
+    color: #ff1a75;
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 1.4rem;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+button {
+    background: linear-gradient(90deg, #ff80bf, #ff1a75);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 14px 28px;
+    margin: 10px;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(255,26,117,0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+button:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 10px 25px rgba(255,26,117,0.6);
+}
+
+input[type="text"] {
+    padding: 14px;
+    width: 75%;
+    font-size: 1rem;
+    margin-top: 10px;
+    border-radius: 18px;
+    border: 2px solid #ff80bf;
+    outline: none;
+}
+
+.fade-out { opacity: 0; }
+.fade-in { opacity: 1; }
+
+@keyframes blink {
+    0% {color: red;}
+    50% {color: yellow;}
+    100% {color: red;}
+}
+.blink {
+    animation: blink 0.5s infinite;
+    font-weight: bold;
+    font-size: 1.6rem;
+}
+
+/* 💬 MODERN POPUP */
+#popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -60%) scale(0.9);
+    background: white;
+    padding: 25px 40px;
+    border-radius: 25px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+    font-size: 1.2rem;
+    color: #ff1a75;
+    z-index: 1000;
+    opacity: 0;
+    transition: all 0.35s ease;
+}
+#popup.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* 💗 FLOATING HEARTS */
+.heart {
+    position: fixed;
+    font-size: 24px;
+    animation: floatUp 2s ease forwards;
+    pointer-events: none;
+}
+@keyframes floatUp {
+    0% {opacity:1; transform:translateY(0);}
+    100% {opacity:0; transform:translateY(-80px);}
+}
+</style>
+</head>
+<body>
+
+<div id="quiz-container">
+    <h1>Valentine Quiz 💖</h1>
+    <div id="question-container"></div>
+</div>
+
+<div id="popup"></div>
+
+<audio id="correctSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+<audio id="wrongSound" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<script>
+let answers = [];
+const questions = [
+    {type:"multiple", question:"When did we officially start dating?", options:["12 Dec 2022","22 Dec 2022","02 Dec 2022","14 Dec 2022"], answer:0},
+    {type:"text", question:"Do you remember what you said to me on 19 March 2023? (Hint - 6 word sentence)", answerWords:["i","love","you","so","freaking","much"]},
+    {type:"multiple", question:"When was our first kiss?", options:["14 Feb 2023","11 Feb 2023","09 Feb 2023","07 Feb 2023"], answer:2},
+    {type:"text", question:"What is your happiest memory of us together:"},
+    {type:"text", question:"What is the one thing I do that makes your heart race:"}
+];
+
+const cuteMessages = ["Aww 🥺💖","My hearttt 😭❤️","You're perfect 😘","Stop, I love this 😍"];
+const correctMessages = ["Good girl 💕","That’s my baby 😘"];
+const wrongMessages = ["Excuse me?? 💔","We need to talk 😤"];
+
+let currentQuestion = 0;
+let score = 0;
+
+const qc = document.getElementById("question-container");
+const popup = document.getElementById("popup");
+const correctSound = document.getElementById("correctSound");
+const wrongSound = document.getElementById("wrongSound");
+
+function showPopup(msg, good=true){
+    popup.textContent = msg;
+    popup.classList.add("show");
+    if(good){
+        miniConfetti();
+        spawnHearts();
+    }
+    setTimeout(()=>popup.classList.remove("show"), 2000);
+}
+
+function spawnHearts(){
+    for(let i=0;i<6;i++){
+        const h=document.createElement("div");
+        h.className="heart";
+        h.innerHTML="💖";
+        h.style.left=Math.random()*100+"vw";
+        h.style.top="60%";
+        document.body.appendChild(h);
+        setTimeout(()=>h.remove(),2000);
+    }
+}
+
+function miniConfetti(){
+    confetti({particleCount:40, spread:60, origin:{y:0.7}});
+}
+
+function showQuestion(){
+    if(currentQuestion>=questions.length){ return showFinal(); }
+    const q=questions[currentQuestion];
+    let html=`<h2>${q.question}</h2>`;
+    if(q.type==="multiple"){
+        q.options.forEach((o,i)=>html+=`<button onclick="checkMultiple(${i})">${o}</button>`);
+    } else {
+        html+=`<input id="text-answer"><br><button onclick="checkText()">Submit</button>`;
+    }
+    qc.innerHTML=html;
+}
+
+function checkMultiple(selected){
+    const q = questions[currentQuestion];
+
+    answers.push({
+        question: q.question,
+        answer: q.options[selected]
+    });
+
+    if(selected === q.answer){
+        score++;
+        correctSound.play();
+        showPopup(correctMessages[Math.floor(Math.random()*correctMessages.length)]);
+    } else {
+        wrongSound.play();
+        showPopup(wrongMessages[Math.floor(Math.random()*wrongMessages.length)], false);
+    }
+
+    currentQuestion++;
+    setTimeout(showQuestion, 500);
+}
+
+function checkText(){
+    const input = document.getElementById("text-answer").value.trim();
+    const q = questions[currentQuestion];
+
+    answers.push({
+        question: q.question,
+        answer: input || "(No answer)"
+    });
+
+    if(!input){
+        wrongSound.play();
+        showPopup("No answer typed 😅", false);
+        currentQuestion++;
+        return setTimeout(showQuestion, 500);
+    }
+
+    // 🔍 STRICT CHECK FOR QUESTION 2
+    if(q.answerWords){
+        const userWords = input.toLowerCase().split(/\s+/);
+        const correctWords = q.answerWords;
+
+        let isExactMatch =
+            userWords.length === correctWords.length &&
+            userWords.every((word, i) => word === correctWords[i]);
+
+        if(isExactMatch){
+            score++;
+            correctSound.play();
+            showPopup("Exact match 😍💯");
+        } else {
+            wrongSound.play();
+            showPopup("That’s not exactly what you said 😌", false);
+        }
+    } else {
+        // Normal open-ended questions
+        score++;
+        correctSound.play();
+        showPopup(cuteMessages[Math.floor(Math.random() * cuteMessages.length)]);
+    }
+
+    currentQuestion++;
+    setTimeout(showQuestion, 500);
+}
+
+function showFinal(){
+    qc.innerHTML = `
+        <h2>Will you be my Valentine? 💖</h2>
+        <button onclick="valentineYes()">Yes</button>
+        <button onclick="no()">No</button>
+    `;
+}
+
+function valentineYes(){
+    confetti({ particleCount: 200, spread: 90 });
+
+    let message = "💖 Valentine Quiz Submission 💖\n\n";
+    answers.forEach((a, i) => {
+        message += `${i + 1}. ${a.question}\nAnswer: ${a.answer}\n\n`;
+    });
+
+    message += `Final Score: ${score}/${questions.length}`;
+
+    emailjs.send("service_6kk24dz", "template_pn5t2fh", {
+        message: message
+    });
+
+    showPopup("Yay! I’m so happy! I love you ❤️", true);
+}
+
+function no(){
+    qc.innerHTML=`<h2 class="blink">SYSTEM ERROR: NOT AUTHORIZED</h2>`;
+    setTimeout(showFinal,2000);
+}
+
+showQuestion();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<script>
+(function(){
+    emailjs.init("Ch3FloYRtnl5kLPHOgx1t");
+})();
+</script>
+
+</body>
+</html>
